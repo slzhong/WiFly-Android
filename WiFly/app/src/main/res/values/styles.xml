@@ -1,0 +1,19 @@
+<resources>
+
+    <!-- Base application theme. -->
+    <style name="AppTheme" parent="android:Theme.Holo.Light">
+        <!-- Customize your theme here. -->
+        <item name="android:actionBarStyle">@style/actionbar_blue</item>
+    </style>
+
+    <style name="actionbar_blue" parent="@android:style/Widget.Holo.Light.ActionBar">
+        <item name="android:background">@color/main_blue</item>
+        <item name="android:titleTextStyle">@style/actionbar_title_white</item>
+    </style>
+
+    <style name="actionbar_title_white">
+        <item name="android:textColor">@color/main_white</item>
+        <item name="android:textSize">25sp</item>
+    </style>
+
+</resources>
