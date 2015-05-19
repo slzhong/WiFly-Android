@@ -1,12 +1,19 @@
 package cn.slzhong.wifly.Activities;
 
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.Context;
+import android.content.DialogInterface;
+import android.content.SharedPreferences;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.EditText;
 
 import cn.slzhong.wifly.R;
+import cn.slzhong.wifly.Utils.Network;
 import cn.slzhong.wifly.Utils.Server;
 import fi.iki.elonen.ServerRunner;
 
@@ -18,11 +25,11 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        Server server = new Server();
-        try {
-            server.start();
-        } catch (Exception e) {
-            e.printStackTrace();
+        if (!Network.isWifiConnected(this)) {
+        } else if (!checkId()) {
+            showPrompt();
+        } else {
+            startServer();
         }
     }
 
@@ -46,5 +53,39 @@ public class MainActivity extends Activity {
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    private boolean checkId() {
+        SharedPreferences sp = getSharedPreferences("Firefly", MODE_PRIVATE);
+        return !sp.getString("name", "").equalsIgnoreCase("");
+    }
+
+    private void showPrompt() {
+        final EditText editText = new EditText(this);
+        new AlertDialog.Builder(this)
+                .setTitle("WELCOME")
+                .setMessage("Enter A Name For Your Device:")
+                .setView(editText)
+                .setPositiveButton("Done", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        SharedPreferences sp = getSharedPreferences("Firefly", MODE_PRIVATE);
+                        SharedPreferences.Editor editor = sp.edit();
+                        editor.putString("name", editText.getText().toString());
+                        editor.commit();
+                        startServer();
+                    }
+                }).show();
+    }
+
+    private void startServer() {
+        Server server = Server.sharedInstance();
+        SharedPreferences sp = getSharedPreferences("Firefly", MODE_PRIVATE);
+        server.init(sp.getString("name", ""), "http://" + Network.getIp(this) + ":12580/");
+        try {
+            server.start();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }
