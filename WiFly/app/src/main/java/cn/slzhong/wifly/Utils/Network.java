@@ -7,6 +7,20 @@ import android.net.NetworkInfo;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 
+import org.apache.http.HttpResponse;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.params.CoreConnectionPNames;
+import org.apache.http.util.EntityUtils;
+import org.json.JSONObject;
+import org.json.JSONTokener;
+
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.URI;
+
 /**
  * Created by SherlockZhong on 5/19/15.
  */
@@ -36,6 +50,24 @@ public class Network {
     public static String getSsid(Activity activity) {
         WifiInfo wifiInfo = getWifiInfo(activity);
         return wifiInfo.getSSID();
+    }
+
+    public static JSONObject httpGet(String url) {
+        try {
+            HttpClient httpClient = new DefaultHttpClient();
+            httpClient.getParams().setParameter(CoreConnectionPNames.CONNECTION_TIMEOUT, 1000);
+            HttpGet httpGet = new HttpGet();
+            httpGet.setURI(URI.create(url));
+            HttpResponse httpResponse = httpClient.execute(httpGet);
+            if (httpResponse.getStatusLine().getStatusCode() == 200 && httpResponse.getEntity() != null) {
+                String responseString = EntityUtils.toString(httpResponse.getEntity());
+                JSONTokener jsonTokener = new JSONTokener(responseString);
+                return (JSONObject) jsonTokener.nextValue();
+            }
+        } catch (Exception e) {
+
+        }
+        return null;
     }
 
 }
