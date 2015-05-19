@@ -3,5 +3,10 @@
 
     <color name="main_theme">#04de71</color>
     <color name="main_white">#fff</color>
+    <color name="main_background">#eee</color>
+    <color name="dard_text">#666</color>
+    <color name="light_text">#999</color>
+    <color name="dark_background">#999</color>
+    <color name="light_background">#ccc</color>
 
 </resources>
