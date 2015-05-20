@@ -2,21 +2,29 @@ package cn.slzhong.wifly.Activities;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.os.Handler;
+import android.os.Looper;
 import android.os.Message;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.EditText;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.w3c.dom.Text;
+
+import java.util.HashMap;
 
 import cn.slzhong.wifly.R;
 import cn.slzhong.wifly.Utils.Network;
@@ -27,7 +35,8 @@ import fi.iki.elonen.ServerRunner;
 public class MainActivity extends Activity {
 
     // views
-    TextView tvTest;
+    private LinearLayout devicesContainer;
+    private ProgressDialog progressDialog;
 
     // variables
     private String ipString;
@@ -37,14 +46,24 @@ public class MainActivity extends Activity {
     private int scanned;
 
     private JSONObject devices;
+    private HashMap<String, LinearLayout> deviceItems;
 
     private Handler mainHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
+            Bundle bundle = msg.getData();
             switch (msg.what) {
-                case 0:
-                    String key = msg.getData().getString("key");
-                    addDevice(key);
+                case 0: // found new device
+                    addDeviceToView(bundle.getString("key"));
+                    break;
+                case 1: // remove offline device
+                    removeDeviceFromView(bundle.getString("key"));
+                    break;
+                case 2: // show progress
+                    showProgress(bundle.getString("title"), bundle.getString("content"));
+                    break;
+                case 3: // hide progress
+                    hideProgress();
                     break;
                 default:
                     break;
@@ -69,10 +88,22 @@ public class MainActivity extends Activity {
     }
 
     @Override
+    protected void onPause() {
+        super.onPause();
+        hideProgress();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        hideProgress();
+    }
+
+    @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_main, menu);
-        return true;
+        return super.onCreateOptionsMenu(menu);
     }
 
     @Override
@@ -83,7 +114,7 @@ public class MainActivity extends Activity {
         int id = item.getItemId();
 
         //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
+        if (id == R.id.action_files) {
             return true;
         }
 
@@ -91,7 +122,8 @@ public class MainActivity extends Activity {
     }
 
     private void initView() {
-        tvTest = (TextView)findViewById(R.id.tv_test);
+        devicesContainer = (LinearLayout)findViewById(R.id.devices_container);
+        progressDialog = new ProgressDialog(this);
     }
 
     private void initData() {
@@ -99,11 +131,20 @@ public class MainActivity extends Activity {
         ipPrefix = ipString.substring(0, ipString.lastIndexOf(".") + 1);
         current = Integer.parseInt(ipString.substring(ipString.lastIndexOf(".") + 1), ipString.length());
         devices = new JSONObject();
+        deviceItems = new HashMap<>();
     }
 
     private boolean checkId() {
         SharedPreferences sp = getSharedPreferences("Firefly", MODE_PRIVATE);
         return !sp.getString("name", "").equalsIgnoreCase("");
+    }
+
+    private void showProgress(String title, String message) {
+        progressDialog = ProgressDialog.show(this, title, message);
+    }
+
+    private void hideProgress() {
+        progressDialog.dismiss();
     }
 
     private void showPrompt() {
@@ -138,6 +179,7 @@ public class MainActivity extends Activity {
 
     private void searchDevice() {
         scanned = 0;
+        checkDevicesLength();
         for (int i = 0; i < 10; i++) {
             searchIp(ipPrefix + (current + i));
         }
@@ -160,15 +202,6 @@ public class MainActivity extends Activity {
         }
     }
 
-    private void addDevice(String key) {
-        try {
-            JSONObject jsonObject = devices.getJSONObject(key);
-            tvTest.setText(tvTest.getText() + "\n" + jsonObject.getString("name"));
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
     private void removeDevice(String ip) {
         String key = "http://" + ip + ":12580/";
         if (devices.has(key)) {
@@ -176,6 +209,9 @@ public class MainActivity extends Activity {
             Message message = new Message();
             message.what = 1;
             Bundle bundle = new Bundle();
+            bundle.putString("key", key);
+            message.setData(bundle);
+            mainHandler.sendMessage(message);
         }
     }
 
@@ -203,5 +239,71 @@ public class MainActivity extends Activity {
             current = (current > 250) ? 1 : current + 10;
             searchDevice();
         }
+    }
+
+    private void checkDevicesLength() {
+        if (devices.length() <= 0 && !progressDialog.isShowing()) {
+            String ssid = Network.getSsid(this);
+            String content = "Searching For Devices... \n\n";
+            content = ssid.length() > 0 ? content + "Current WiFi:\n" + ssid : content;
+            Message message = new Message();
+            message.what = 2;
+            Bundle bundle = new Bundle();
+            bundle.putString("title", "Notice");
+            bundle.putString("content", content);
+            message.setData(bundle);
+            mainHandler.sendMessage(message);
+        } else if (devices.length() > 0) {
+            Message message = new Message();
+            message.what = 3;
+            mainHandler.sendMessage(message);
+            hideProgress();
+        }
+    }
+
+    private void addDeviceToView(String key) {
+        hideProgress();
+        try {
+            JSONObject jsonObject;
+            if (devices.has(key)) {
+                jsonObject = devices.getJSONObject(key);
+            } else {
+                return;
+            }
+
+            LayoutInflater layoutInflater = getLayoutInflater();
+            LinearLayout deviceItem = (LinearLayout)layoutInflater.inflate(R.layout.device_item, null);
+            ImageView icon = (ImageView)deviceItem.findViewById(R.id.device_icon);
+            TextView name = (TextView)deviceItem.findViewById(R.id.device_name);
+            TextView ip = (TextView)deviceItem.findViewById(R.id.device_ip);
+
+            // set icon
+            String type = jsonObject.getString("type");
+            if (type.equalsIgnoreCase("mac")) {
+                icon.setImageResource(R.mipmap.mac);
+            } else if (type.equalsIgnoreCase("ios")) {
+                icon.setImageResource(R.mipmap.ios);
+            } else if (type.equalsIgnoreCase("android")) {
+                icon.setImageResource(R.mipmap.android);
+            } else {
+                return;
+            }
+            // set name
+            name.setText(jsonObject.getString("name"));
+
+            // set ip
+            String url = jsonObject.getString("url");
+            ip.setText(url.substring(7, url.length() - 7));
+
+            devicesContainer.addView(deviceItem);
+            deviceItems.put(jsonObject.getString("url"), deviceItem);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void removeDeviceFromView(String key) {
+        LinearLayout deviceItem = (LinearLayout)deviceItems.get(key);
+        devicesContainer.removeView(deviceItem);
     }
 }
