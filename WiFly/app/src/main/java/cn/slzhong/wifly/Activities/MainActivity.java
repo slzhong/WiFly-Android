@@ -15,6 +15,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -48,6 +49,7 @@ public class MainActivity extends Activity {
 
     private JSONObject devices;
     private HashMap<String, LinearLayout> deviceItems;
+    private String currentDevice;
 
     private Handler mainHandler = new Handler() {
         @Override
@@ -288,6 +290,7 @@ public class MainActivity extends Activity {
             ImageView icon = (ImageView)deviceItem.findViewById(R.id.device_icon);
             TextView name = (TextView)deviceItem.findViewById(R.id.device_name);
             TextView ip = (TextView)deviceItem.findViewById(R.id.device_ip);
+            TextView u = (TextView)deviceItem.findViewById(R.id.device_url);
 
             // set icon
             String type = jsonObject.getString("type");
@@ -305,7 +308,17 @@ public class MainActivity extends Activity {
 
             // set ip
             String url = jsonObject.getString("url");
+            u.setText(url);
             ip.setText(url.substring(7, url.length() - 7));
+
+            deviceItem.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    TextView textView = (TextView)v.findViewById(R.id.device_url);
+                    currentDevice = textView.getText().toString();
+                    showActions();
+                }
+            });
 
             devicesContainer.addView(deviceItem);
             deviceItems.put(jsonObject.getString("url"), deviceItem);
@@ -317,5 +330,18 @@ public class MainActivity extends Activity {
     private void removeDeviceFromView(String key) {
         LinearLayout deviceItem = (LinearLayout)deviceItems.get(key);
         devicesContainer.removeView(deviceItem);
+    }
+
+    private void showActions() {
+        new AlertDialog.Builder(this)
+                .setTitle("Select A Type You Want To Send")
+                .setItems(new String[]{"Choose From Album", "Choose From Files", "Text Messsage"}, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        System.out.println("*****" + which);
+                    }
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
     }
 }
