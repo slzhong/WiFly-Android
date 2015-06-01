@@ -29,6 +29,7 @@ import java.util.HashMap;
 import cn.slzhong.wifly.R;
 import cn.slzhong.wifly.Utils.Network;
 import cn.slzhong.wifly.Utils.Server;
+import cn.slzhong.wifly.Utils.Storage;
 import fi.iki.elonen.ServerRunner;
 
 
@@ -78,6 +79,8 @@ public class MainActivity extends Activity {
 
         initView();
         initData();
+
+        Storage.init(this);
 
         if (!Network.isWifiConnected(this)) {
             showAlert("Error", "WiFi Not In Range! Make Sure WiFi Is Turned On!");

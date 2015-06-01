@@ -46,7 +46,7 @@ public class Server extends NanoHTTPD {
         } else if (uri.equalsIgnoreCase("/id")) {
             return id();
         } else if (uri.equalsIgnoreCase("/upload")) {
-            return null;
+            return upload(parms, files);
         } else if (uri.endsWith(".js") || uri.endsWith(".css") || uri.endsWith(".png")) {
             return resource(uri.substring(1));
         } else {
@@ -80,6 +80,15 @@ public class Server extends NanoHTTPD {
         } catch (Exception e) {
             e.printStackTrace();
             return new Response(Response.Status.INTERNAL_ERROR, mimeTEXT, "500");
+        }
+    }
+
+    private Response upload(Map<String, String> params, Map<String, String> files) {
+        if (files.get("file") != null && params.get("name") != null) {
+            Storage.saveFile(files.get("file"), params.get("name"));
+            return new Response(Response.Status.OK, mimeTEXT, "200");
+        } else {
+            return new Response(Response.Status.BAD_REQUEST, mimeTEXT, "400");
         }
     }
 
