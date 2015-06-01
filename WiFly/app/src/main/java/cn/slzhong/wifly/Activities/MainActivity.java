@@ -80,6 +80,7 @@ public class MainActivity extends Activity {
         initData();
 
         if (!Network.isWifiConnected(this)) {
+            showAlert("Error", "WiFi Not In Range! Make Sure WiFi Is Turned On!");
         } else if (!checkId()) {
             showPrompt();
         } else {
@@ -132,6 +133,7 @@ public class MainActivity extends Activity {
         current = Integer.parseInt(ipString.substring(ipString.lastIndexOf(".") + 1), ipString.length());
         devices = new JSONObject();
         deviceItems = new HashMap<>();
+        System.out.println("*****" + ipString);
     }
 
     private boolean checkId() {
@@ -165,10 +167,17 @@ public class MainActivity extends Activity {
                 }).show();
     }
 
+    private void showAlert(String title, String text) {
+        new AlertDialog.Builder(this)
+                .setTitle(title)
+                .setMessage(text)
+                .show();
+    }
+
     private void startServer() {
         Server server = Server.sharedInstance();
         SharedPreferences sp = getSharedPreferences("Firefly", MODE_PRIVATE);
-        server.init(sp.getString("name", ""), "http://" + ipString + ":12580/");
+        server.init(sp.getString("name", ""), "http://" + ipString + ":12580/", this);
         try {
             server.start();
             searchDevice();
