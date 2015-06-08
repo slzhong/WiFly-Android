@@ -1,9 +1,9 @@
 <resources>
 
     <!-- Base application theme. -->
-    <style name="AppTheme" parent="android:Theme.Holo.Light">
+    <style name="AppTheme" parent="android:Theme.Holo.NoActionBar">
         <!-- Customize your theme here. -->
-        <item name="android:actionBarStyle">@style/actionbar_blue</item>
+        <!--<item name="android:actionBarStyle">@style/actionbar_blue</item>-->
     </style>
 
     <style name="actionbar_blue" parent="@android:style/Widget.Holo.Light.ActionBar">

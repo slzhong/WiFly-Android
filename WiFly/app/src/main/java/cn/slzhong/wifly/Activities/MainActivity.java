@@ -5,7 +5,9 @@ import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.SharedPreferences;
+import android.net.Uri;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
@@ -16,16 +18,28 @@ import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.animation.AlphaAnimation;
+import android.view.animation.Animation;
+import android.view.animation.TranslateAnimation;
+import android.widget.AdapterView;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.ListView;
+import android.widget.SimpleAdapter;
 import android.widget.TextView;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.w3c.dom.Text;
 
+import java.io.File;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 import cn.slzhong.wifly.R;
 import cn.slzhong.wifly.Utils.Network;
@@ -39,6 +53,10 @@ public class MainActivity extends Activity {
     // views
     private LinearLayout devicesContainer;
     private ProgressDialog progressDialog;
+    private Button buttonReceived;
+    private LinearLayout filesContainer;
+    private TextView filesTitle;
+    private ListView filesList;
 
     // variables
     private String ipString;
@@ -46,6 +64,8 @@ public class MainActivity extends Activity {
 
     private int current;
     private int scanned;
+
+    private boolean isReceived;
 
     private JSONObject devices;
     private HashMap<String, LinearLayout> deviceItems;
@@ -89,7 +109,7 @@ public class MainActivity extends Activity {
         } else if (!checkId()) {
             showPrompt();
         } else {
-            startServer();
+//            startServer();
         }
     }
 
@@ -128,8 +148,21 @@ public class MainActivity extends Activity {
     }
 
     private void initView() {
-        devicesContainer = (LinearLayout)findViewById(R.id.devices_container);
         progressDialog = new ProgressDialog(this);
+        devicesContainer = (LinearLayout)findViewById(R.id.devices_container);
+
+        buttonReceived = (Button)findViewById(R.id.button_received);
+        buttonReceived.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                isReceived = true;
+                toggleFiles();
+            }
+        });
+
+        filesContainer = (LinearLayout)findViewById(R.id.files_container);
+        filesTitle = (TextView)findViewById(R.id.files_title);
+        filesList = (ListView)findViewById(R.id.files_list);
     }
 
     private void initData() {
@@ -343,5 +376,162 @@ public class MainActivity extends Activity {
                 })
                 .setNegativeButton("Cancel", null)
                 .show();
+    }
+
+    private void toggleFiles() {
+        if (isReceived) {
+            filesTitle.setText("Received Files:");
+            loadReceived();
+        } else {
+            filesTitle.setText("Choose A File:");
+        }
+        if (filesContainer.getVisibility() == View.GONE) {
+            toggleContainer(true);
+            toggleTitle(true);
+            toggleList(true);
+        } else {
+            toggleContainer(false);
+            toggleTitle(false);
+            toggleList(false);
+        }
+
+    }
+
+    private void toggleContainer(boolean show) {
+        if (show) {
+            filesContainer.setVisibility(View.VISIBLE);
+            AlphaAnimation alphaAnimation = new AlphaAnimation(0, 1);
+            alphaAnimation.setDuration(300);
+            filesContainer.startAnimation(alphaAnimation);
+        } else {
+            AlphaAnimation alphaAnimation = new AlphaAnimation(1, 0);
+            alphaAnimation.setDuration(300);
+            filesContainer.startAnimation(alphaAnimation);
+            mainHandler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    filesContainer.setVisibility(View.GONE);
+                }
+            }, 300);
+        }
+    }
+
+    private void toggleTitle(boolean show) {
+        TranslateAnimation translateAnimation;
+        if (show) {
+            translateAnimation = new TranslateAnimation(
+                    Animation.RELATIVE_TO_PARENT, 0,
+                    Animation.RELATIVE_TO_PARENT, 0,
+                    Animation.RELATIVE_TO_PARENT, 1,
+                    Animation.RELATIVE_TO_PARENT, 0);
+        } else {
+            translateAnimation = new TranslateAnimation(
+                    Animation.RELATIVE_TO_PARENT, 0,
+                    Animation.RELATIVE_TO_PARENT, 0,
+                    Animation.RELATIVE_TO_PARENT, 0,
+                    Animation.RELATIVE_TO_PARENT, 1);
+        }
+        translateAnimation.setDuration(400);
+        filesTitle.startAnimation(translateAnimation);
+    }
+
+    private void toggleList(boolean show) {
+        TranslateAnimation translateAnimation;
+        if (show) {
+            translateAnimation = new TranslateAnimation(
+                    Animation.RELATIVE_TO_PARENT, 0,
+                    Animation.RELATIVE_TO_PARENT, 0,
+                    Animation.RELATIVE_TO_PARENT, 1,
+                    Animation.RELATIVE_TO_PARENT, 0);
+            translateAnimation.setDuration(500);
+        } else {
+            translateAnimation = new TranslateAnimation(
+                    Animation.RELATIVE_TO_PARENT, 0,
+                    Animation.RELATIVE_TO_PARENT, 0,
+                    Animation.RELATIVE_TO_PARENT, 0,
+                    Animation.RELATIVE_TO_PARENT, 1);
+            translateAnimation.setDuration(300);
+        }
+        filesList.startAnimation(translateAnimation);
+    }
+
+    private void loadReceived() {
+        File receivedDir = Storage.getReceived();
+        File[] receivedItems = receivedDir.listFiles();
+
+        List<Map<String, Object>> data = new ArrayList<>();
+
+        for (File file : receivedItems) {
+            Map<String, Object> item = new HashMap<>();
+            int icon = Storage.getFileIcon(file);
+            item.put("name", file.getName());
+            item.put("size", Storage.getFileSize(file));
+            item.put("path", file.getAbsolutePath());
+            item.put("icon", icon);
+            item.put("type", icon);
+            data.add(item);
+        }
+
+        SimpleAdapter simpleAdapter = new SimpleAdapter(this, data, R.layout.file_item,
+                new String[]{"icon", "name", "size", "path", "type"},
+                new int[]{R.id.file_icon, R.id.file_name, R.id.file_size, R.id.file_path, R.id.file_type});
+        filesList.setAdapter(simpleAdapter);
+        filesList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                TextView path = (TextView) view.findViewById(R.id.file_path);
+                if (isReceived) {
+                    TextView type = (TextView) view.findViewById(R.id.file_type);
+                    int typeId = Integer.parseInt(type.getText().toString());
+                    if (typeId == R.mipmap.file_image) {
+                        openImage(path.getText().toString());
+                    } else if (typeId == R.mipmap.file_audio) {
+                        openAudio(path.getText().toString());
+                    } else if (typeId == R.mipmap.file_video) {
+                        openVideo(path.getText().toString());
+                    } else {
+                        openText(path.getText().toString());
+                    }
+                }
+            }
+        });
+    }
+
+    private void openImage(String path) {
+        Intent intent = new Intent("android.intent.action.VIEW");
+        intent.addCategory("android.intent.category.DEFAULT");
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        Uri uri = Uri.fromFile(new File(path));
+        intent.setDataAndType(uri, "image/*");
+        startActivity(intent);
+    }
+
+    private void openAudio(String path) {
+        Intent intent = new Intent("android.intent.action.VIEW");
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        intent.putExtra("oneshot", 0);
+        intent.putExtra("configchange", 0);
+        Uri uri = Uri.fromFile(new File(path));
+        intent.setDataAndType(uri, "audio/*");
+        startActivity(intent);
+    }
+
+    private void openVideo(String path) {
+        Intent intent = new Intent("android.intent.action.VIEW");
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        intent.putExtra("oneshot", 0);
+        intent.putExtra("configchange", 0);
+        Uri uri = Uri.fromFile(new File(path));
+        intent.setDataAndType(uri, "video/*");
+        startActivity(intent);
+    }
+
+    private void openText(String path) {
+        Intent intent = new Intent("android.intent.action.VIEW");
+        intent.addCategory("android.intent.category.DEFAULT");
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        Uri uri = Uri.fromFile(new File(path));
+        intent.setDataAndType(uri, "text/plain");
+        startActivity(intent);
     }
 }

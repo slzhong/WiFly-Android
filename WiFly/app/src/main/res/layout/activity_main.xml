@@ -5,10 +5,47 @@
     android:layout_height="match_parent"
     android:background="@color/main_background"
     tools:context=".MainActivity">
+    
+    <RelativeLayout
+        android:id="@+id/action_bar"
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:paddingLeft="10dp"
+        android:paddingRight="10dp"
+        android:paddingTop="5dp"
+        android:paddingBottom="5dp"
+        android:orientation="horizontal"
+        android:background="@color/main_theme">
+
+        <ImageView
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:src="@mipmap/icon"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_marginLeft="40dp"
+            android:textColor="@color/main_white"
+            android:gravity="center"
+            android:textSize="20sp"
+            android:text="Firefly"/>
+
+        <Button
+            android:id="@+id/button_received"
+            android:layout_width="25dp"
+            android:layout_height="25dp"
+            android:layout_alignParentEnd="true"
+            android:layout_alignParentRight="true"
+            android:layout_centerVertical="true"
+            android:background="@mipmap/download_white"/>
+
+    </RelativeLayout>
 
     <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        android:layout_below="@+id/action_bar">
 
         <LinearLayout
             android:id="@+id/devices_container"
@@ -19,5 +56,33 @@
         </LinearLayout>
 
     </ScrollView>
+
+    <LinearLayout
+        android:id="@+id/files_container"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@id/action_bar"
+        android:orientation="vertical"
+        android:paddingTop="30dp"
+        android:paddingBottom="30dp"
+        android:paddingLeft="20dp"
+        android:paddingRight="20dp"
+        android:background="@color/dark_background_transparent"
+        android:visibility="gone">
+        
+        <TextView
+            android:id="@+id/files_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="15sp"
+            android:text=""/>
+
+        <ListView
+            android:id="@+id/files_list"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@color/main_white"></ListView>
+
+    </LinearLayout>
 
 </RelativeLayout>
