@@ -20,6 +20,8 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.animation.AlphaAnimation;
 import android.view.animation.Animation;
+import android.view.animation.AnimationSet;
+import android.view.animation.ScaleAnimation;
 import android.view.animation.TranslateAnimation;
 import android.widget.AdapterView;
 import android.widget.Button;
@@ -27,6 +29,7 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
+import android.widget.RelativeLayout;
 import android.widget.SimpleAdapter;
 import android.widget.TextView;
 
@@ -54,7 +57,8 @@ public class MainActivity extends Activity {
     private LinearLayout devicesContainer;
     private ProgressDialog progressDialog;
     private Button buttonReceived;
-    private LinearLayout filesContainer;
+    private RelativeLayout filesContainer;
+    private LinearLayout filesBackground;
     private TextView filesTitle;
     private ListView filesList;
 
@@ -160,7 +164,8 @@ public class MainActivity extends Activity {
             }
         });
 
-        filesContainer = (LinearLayout)findViewById(R.id.files_container);
+        filesContainer = (RelativeLayout)findViewById(R.id.files_container);
+        filesBackground = (LinearLayout)findViewById(R.id.files_background);
         filesTitle = (TextView)findViewById(R.id.files_title);
         filesList = (ListView)findViewById(R.id.files_list);
     }
@@ -388,10 +393,12 @@ public class MainActivity extends Activity {
         if (filesContainer.getVisibility() == View.GONE) {
             toggleContainer(true);
             toggleTitle(true);
+            toggleBackground(true);
             toggleList(true);
         } else {
             toggleContainer(false);
             toggleTitle(false);
+            toggleBackground(false);
             toggleList(false);
         }
 
@@ -405,14 +412,14 @@ public class MainActivity extends Activity {
             filesContainer.startAnimation(alphaAnimation);
         } else {
             AlphaAnimation alphaAnimation = new AlphaAnimation(1, 0);
-            alphaAnimation.setDuration(300);
+            alphaAnimation.setDuration(350);
             filesContainer.startAnimation(alphaAnimation);
             mainHandler.postDelayed(new Runnable() {
                 @Override
                 public void run() {
                     filesContainer.setVisibility(View.GONE);
                 }
-            }, 300);
+            }, 350);
         }
     }
 
@@ -433,6 +440,34 @@ public class MainActivity extends Activity {
         }
         translateAnimation.setDuration(400);
         filesTitle.startAnimation(translateAnimation);
+    }
+
+    private void toggleBackground(boolean show) {
+        AnimationSet animationSet = new AnimationSet(true);
+        ScaleAnimation scaleAnimation;
+        TranslateAnimation translateAnimation;
+        if (show) {
+            scaleAnimation = new ScaleAnimation(0, 3, 0, 3);
+            translateAnimation = new TranslateAnimation(
+                    Animation.RELATIVE_TO_PARENT, 1f,
+                    Animation.RELATIVE_TO_PARENT, -0.438f,
+                    Animation.RELATIVE_TO_PARENT, 0,
+                    Animation.RELATIVE_TO_PARENT, -0.2f);
+        } else {
+            scaleAnimation = new ScaleAnimation(3, 0, 3, 0);
+            translateAnimation = new TranslateAnimation(
+                    Animation.RELATIVE_TO_PARENT, -0.438f,
+                    Animation.RELATIVE_TO_PARENT, 1f,
+                    Animation.RELATIVE_TO_PARENT, -0.2f,
+                    Animation.RELATIVE_TO_PARENT, 0);
+        }
+        scaleAnimation.setDuration(400);
+        translateAnimation.setDuration(400);
+        animationSet.addAnimation(scaleAnimation);
+        animationSet.setFillEnabled(true);
+        animationSet.setFillAfter(true);
+        animationSet.addAnimation(translateAnimation);
+        filesBackground.startAnimation(animationSet);
     }
 
     private void toggleList(boolean show) {

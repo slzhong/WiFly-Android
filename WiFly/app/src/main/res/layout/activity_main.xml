@@ -57,7 +57,7 @@
 
     </ScrollView>
 
-    <LinearLayout
+    <RelativeLayout
         android:id="@+id/files_container"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -69,20 +69,35 @@
         android:paddingRight="20dp"
         android:background="@color/dark_background_transparent"
         android:visibility="gone">
-        
+
         <TextView
             android:id="@+id/files_title"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:textSize="15sp"
-            android:text=""/>
+            android:text="title"/>
 
-        <ListView
-            android:id="@+id/files_list"
+        <RelativeLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="@color/main_white"></ListView>
+            android:layout_below="@+id/files_title"
+            android:orientation="vertical">
 
-    </LinearLayout>
+            <LinearLayout
+                android:id="@+id/files_background"
+                android:layout_width="200dp"
+                android:layout_height="200dp"
+                android:orientation="vertical"
+                android:background="@drawable/files_background"></LinearLayout>
+
+            <ListView
+                android:id="@+id/files_list"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_below="@+id/files_title"></ListView>
+
+        </RelativeLayout>
+
+    </RelativeLayout>
 
 </RelativeLayout>
