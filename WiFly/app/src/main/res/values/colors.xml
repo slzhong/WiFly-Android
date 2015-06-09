@@ -9,5 +9,7 @@
     <color name="dark_background">#999</color>
     <color name="light_background">#ccc</color>
     <color name="dark_background_transparent">#aa000000</color>
+    <color name="text_success">#e6ff00</color>
+    <color name="text_error">#f00</color>
 
 </resources>

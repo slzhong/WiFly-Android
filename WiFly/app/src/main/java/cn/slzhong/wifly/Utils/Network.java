@@ -57,13 +57,14 @@ public class Network {
         return wifiInfo.getSSID();
     }
 
-    public static JSONObject httpGet(String url) {
+    public static JSONObject httpGet(String url, boolean limitTimeout) {
         try {
             HttpClient httpClient = new DefaultHttpClient();
-            httpClient.getParams().setParameter(CoreConnectionPNames.CONNECTION_TIMEOUT, 1000);
+            if (limitTimeout) {
+                httpClient.getParams().setParameter(CoreConnectionPNames.CONNECTION_TIMEOUT, 1000);
+                httpClient.getParams().setParameter(CoreConnectionPNames.SO_TIMEOUT, 1000);
+            }
             HttpGet httpGet = new HttpGet();
-            httpClient.getParams().setParameter(CoreConnectionPNames.CONNECTION_TIMEOUT, 1000);
-            httpClient.getParams().setParameter(CoreConnectionPNames.SO_TIMEOUT, 1000);
             httpGet.setURI(URI.create(url));
             HttpResponse httpResponse = httpClient.execute(httpGet);
             if (httpResponse.getStatusLine().getStatusCode() == 200 && httpResponse.getEntity() != null) {

@@ -30,6 +30,7 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
+import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.SimpleAdapter;
 import android.widget.TextView;
@@ -63,6 +64,7 @@ public class MainActivity extends Activity {
     private LinearLayout filesBackground;
     private TextView filesTitle;
     private ListView filesList;
+    private LinearLayout currentDeviceView;
 
     // variables
     private String ipString;
@@ -93,6 +95,18 @@ public class MainActivity extends Activity {
                     break;
                 case 3: // hide progress
                     hideProgress();
+                    break;
+                case 4: // update device status to success
+                    sendStatus(true);
+                    break;
+                case 5: // update device status to error
+                    sendStatus(false);
+                    break;
+                case 6: // update device status progress
+                    sendProgress(bundle);
+                    break;
+                case 7: // show message
+                    showTextBox(bundle.getString("from") + ":\n" + bundle.getString("content"));
                     break;
                 default:
                     break;
@@ -232,7 +246,7 @@ public class MainActivity extends Activity {
     private void startServer() {
         Server server = Server.sharedInstance();
         SharedPreferences sp = getSharedPreferences("Firefly", MODE_PRIVATE);
-        server.init(sp.getString("name", ""), "http://" + ipString + ":12580/", this);
+        server.init(sp.getString("name", ""), "http://" + ipString + ":12580/", this, mainHandler);
         try {
             server.start();
             searchDevice();
@@ -285,13 +299,14 @@ public class MainActivity extends Activity {
             new Thread(new Runnable() {
                 @Override
                 public void run() {
-                    JSONObject jsonObject = Network.httpGet("http://" + ip + ":12580/id");
+                    JSONObject jsonObject = Network.httpGet("http://" + ip + ":12580/id", true);
                     if (jsonObject != null) {
                         checkDevice(jsonObject);
                     } else {
                         removeDevice(ip);
                     }
                     searchNext();
+//                    Thread.currentThread().interrupt();
                 }
             }).start();
         } else {
@@ -365,6 +380,7 @@ public class MainActivity extends Activity {
             deviceItem.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
+                    currentDeviceView = (LinearLayout)v;
                     TextView textView = (TextView)v.findViewById(R.id.device_url);
                     currentDevice = textView.getText().toString();
                     showActions();
@@ -393,6 +409,12 @@ public class MainActivity extends Activity {
                             isReceived = false;
                             loadFiles(Storage.getReceived());
                             toggleFiles();
+                        } else if (which == 1) {
+                            try {
+                                showTextBox("Enter Message For " + devices.getJSONObject(currentDevice).getString("name") + ": ");
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
                         }
                     }
                 })
@@ -632,5 +654,73 @@ public class MainActivity extends Activity {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    private void sendStatus(boolean success) {
+        TextView status = (TextView)currentDeviceView.findViewById(R.id.device_status);
+        if (success) {
+            status.setTextColor(getResources().getColor(R.color.text_success));
+            status.setText("√");
+        } else {
+            status.setTextColor(getResources().getColor(R.color.text_error));
+            status.setText("error");
+        }
+
+        ProgressBar progressBar = (ProgressBar)currentDeviceView.findViewById(R.id.device_progress);
+        progressBar.setVisibility(View.INVISIBLE);
+
+        TextView percentage = (TextView)currentDeviceView.findViewById(R.id.device_percentage);
+        percentage.setVisibility(View.INVISIBLE);
+    }
+
+    private void sendProgress(Bundle bundle) {
+        int progress = bundle.getInt("progress");
+        if (progress == 100) {
+            sendStatus(true);
+        } else {
+            TextView status = (TextView)currentDeviceView.findViewById(R.id.device_status);
+            TextView percentage = (TextView)currentDeviceView.findViewById(R.id.device_percentage);
+            ProgressBar progressBar = (ProgressBar)currentDeviceView.findViewById(R.id.device_progress);
+            status.setTextColor(getResources().getColor(R.color.light_text));
+            status.setText("sending...");
+            progressBar.setVisibility(View.VISIBLE);
+            progressBar.setProgress(progress);
+            percentage.setVisibility(View.VISIBLE);
+            percentage.setText(progress + "%");
+        }
+    }
+
+    private void showTextBox(String message) {
+        final EditText editText = new EditText(this);
+        new AlertDialog.Builder(this)
+                .setTitle("Text Message")
+                .setMessage(message)
+                .setView(editText)
+                .setNegativeButton("Discard", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+
+                    }
+                })
+                .setPositiveButton("Send", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        String content = editText.getText().toString();
+                        try {
+                            SharedPreferences sp = getSharedPreferences("Firefly", MODE_PRIVATE);
+                            String url = devices.getJSONObject(currentDevice).getString("url");
+                            url = url + "chat?from=" + sp.getString("name", "") + "&content=" + content;
+                            final String finalUrl = url;
+                            new Thread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    Network.httpGet(finalUrl, false);
+                                }
+                            }).start();
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }).show();
     }
 }

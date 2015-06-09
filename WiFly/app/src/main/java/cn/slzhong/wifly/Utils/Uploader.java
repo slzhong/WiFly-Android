@@ -2,7 +2,9 @@ package cn.slzhong.wifly.Utils;
 
 import android.content.Context;
 import android.os.AsyncTask;
+import android.os.Bundle;
 import android.os.Handler;
+import android.os.Message;
 import android.os.RecoverySystem;
 
 import org.apache.http.HttpResponse;
@@ -53,10 +55,19 @@ public class Uploader extends AsyncTask<String, Integer, String> {
             UploaderEntity uploaderEntity = new UploaderEntity(new UploaderEntity.ProgressListener() {
                 @Override
                 public void transferred(long num) {
-                    System.out.println("*****" + ((int) ((num / (float) size) * 100)) + "%");
+                    Message message = new Message();
+                    message.what = 6;
+                    Bundle bundle = new Bundle();
+                    bundle.putInt("progress", (int) ((num / (float) size) * 100));
+                    message.setData(bundle);
+                    handler.sendMessage(message);
                 }
             });
-            uploaderEntity.addPart("file", new FileBody(file));
+            if (url.contains(":12580")) {
+                uploaderEntity.addPart("file", new FileBody(file));
+            } else {
+                uploaderEntity.addPart("files[]", new FileBody(file));
+            }
             uploaderEntity.addPart("name", new StringBody(file.getName()));
             uploaderEntity.addPart("type", new StringBody("unknown"));
             uploaderEntity.addPart("size", new StringBody("" + file.length()));
@@ -74,12 +85,13 @@ public class Uploader extends AsyncTask<String, Integer, String> {
 
     @Override
     protected void onProgressUpdate(Integer... values) {
-        System.out.println("*****" + values[0]);
+        System.out.println("*****update");
     }
 
     @Override
     protected void onPostExecute(String s) {
-        System.out.println("*****" + s);
+        Message message = new Message();
+
     }
 
     @Override

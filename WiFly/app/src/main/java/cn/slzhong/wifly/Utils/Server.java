@@ -1,6 +1,9 @@
 package cn.slzhong.wifly.Utils;
 
 import android.app.Activity;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 
 import org.json.JSONObject;
 
@@ -16,6 +19,7 @@ import fi.iki.elonen.NanoHTTPD;
 public class Server extends NanoHTTPD {
 
     private Activity activity;
+    private Handler handler;
 
     private static Server server;
     private String name;
@@ -47,6 +51,9 @@ public class Server extends NanoHTTPD {
             return id();
         } else if (uri.equalsIgnoreCase("/upload")) {
             return upload(parms, files);
+        } else if (uri.equalsIgnoreCase("/chat")) {
+            System.out.println("******" + uri);
+            return chat(parms);
         } else if (uri.endsWith(".js") || uri.endsWith(".css") || uri.endsWith(".png")) {
             return resource(uri.substring(1));
         } else {
@@ -54,10 +61,11 @@ public class Server extends NanoHTTPD {
         }
     }
 
-    public void init(String n, String u, Activity aty) {
+    public void init(String n, String u, Activity aty, Handler hdl) {
         name = n;
         url = u;
         activity = aty;
+        handler = hdl;
     }
 
     private Response index() {
@@ -112,5 +120,17 @@ public class Server extends NanoHTTPD {
             e.printStackTrace();
             return new Response(Response.Status.NOT_FOUND, mimeTEXT, "404");
         }
+    }
+
+    private Response chat(Map<String, String> params) {
+        System.out.println("*****" + params);
+        Message message = new Message();
+        message.what = 7;
+        Bundle bundle = new Bundle();
+        bundle.putString("from", params.get("from").toString());
+        bundle.putString("content", params.get("content").toString());
+        message.setData(bundle);
+        handler.sendMessage(message);
+        return new Response(Response.Status.OK, mimeTEXT, "200");
     }
 }
