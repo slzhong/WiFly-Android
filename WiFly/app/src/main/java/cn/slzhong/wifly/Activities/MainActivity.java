@@ -14,6 +14,7 @@ import android.os.Message;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -113,7 +114,7 @@ public class MainActivity extends Activity {
         } else if (!checkId()) {
             showPrompt();
         } else {
-//            startServer();
+            startServer();
         }
     }
 
@@ -149,6 +150,16 @@ public class MainActivity extends Activity {
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if (keyCode == KeyEvent.KEYCODE_BACK && event.getRepeatCount() == 0 && filesContainer.getVisibility() == View.VISIBLE) {
+            toggleFiles();
+            return true;
+        } else {
+            return super.onKeyDown(keyCode, event);
+        }
     }
 
     private void initView() {
@@ -377,6 +388,11 @@ public class MainActivity extends Activity {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
                         System.out.println("*****" + which);
+                        if (which == 1) {
+                            isReceived = false;
+                            loadFiles(Storage.getReceived());
+                            toggleFiles();
+                        }
                     }
                 })
                 .setNegativeButton("Cancel", null)
@@ -386,7 +402,7 @@ public class MainActivity extends Activity {
     private void toggleFiles() {
         if (isReceived) {
             filesTitle.setText("Received Files:");
-            loadReceived();
+            loadFiles(Storage.getReceived());
         } else {
             filesTitle.setText("Choose A File:");
         }
@@ -448,18 +464,34 @@ public class MainActivity extends Activity {
         TranslateAnimation translateAnimation;
         if (show) {
             scaleAnimation = new ScaleAnimation(0, 3, 0, 3);
-            translateAnimation = new TranslateAnimation(
-                    Animation.RELATIVE_TO_PARENT, 1f,
-                    Animation.RELATIVE_TO_PARENT, -0.438f,
-                    Animation.RELATIVE_TO_PARENT, 0,
-                    Animation.RELATIVE_TO_PARENT, -0.2f);
+            if (isReceived) {
+                translateAnimation = new TranslateAnimation(
+                        Animation.RELATIVE_TO_PARENT, 1f,
+                        Animation.RELATIVE_TO_PARENT, -0.438f,
+                        Animation.RELATIVE_TO_PARENT, 0,
+                        Animation.RELATIVE_TO_PARENT, -0.2f);
+            } else {
+                translateAnimation = new TranslateAnimation(
+                        Animation.RELATIVE_TO_PARENT, 0.5f,
+                        Animation.RELATIVE_TO_PARENT, -0.438f,
+                        Animation.RELATIVE_TO_PARENT, 1,
+                        Animation.RELATIVE_TO_PARENT, -0.2f);
+            }
         } else {
             scaleAnimation = new ScaleAnimation(3, 0, 3, 0);
-            translateAnimation = new TranslateAnimation(
-                    Animation.RELATIVE_TO_PARENT, -0.438f,
-                    Animation.RELATIVE_TO_PARENT, 1f,
-                    Animation.RELATIVE_TO_PARENT, -0.2f,
-                    Animation.RELATIVE_TO_PARENT, 0);
+            if (isReceived) {
+                translateAnimation = new TranslateAnimation(
+                        Animation.RELATIVE_TO_PARENT, -0.438f,
+                        Animation.RELATIVE_TO_PARENT, 1f,
+                        Animation.RELATIVE_TO_PARENT, -0.2f,
+                        Animation.RELATIVE_TO_PARENT, 0);
+            } else {
+                translateAnimation = new TranslateAnimation(
+                        Animation.RELATIVE_TO_PARENT, -0.438f,
+                        Animation.RELATIVE_TO_PARENT, 0.5f,
+                        Animation.RELATIVE_TO_PARENT, -0.2f,
+                        Animation.RELATIVE_TO_PARENT, 1);
+            }
         }
         scaleAnimation.setDuration(400);
         translateAnimation.setDuration(400);
@@ -490,11 +522,22 @@ public class MainActivity extends Activity {
         filesList.startAnimation(translateAnimation);
     }
 
-    private void loadReceived() {
-        File receivedDir = Storage.getReceived();
-        File[] receivedItems = receivedDir.listFiles();
+    private void loadFiles(File dir) {
+        File[] receivedItems = dir.listFiles();
 
         List<Map<String, Object>> data = new ArrayList<>();
+
+        System.out.println("*****" + dir);
+
+        if (!isReceived && dir.length() > 0) {
+            Map<String, Object> upper = new HashMap<>();
+            upper.put("name", "..");
+            upper.put("size", "");
+            upper.put("path", dir.toString().substring(0, dir.toString().lastIndexOf("/")));
+            upper.put("icon", R.mipmap.folder);
+            upper.put("type", R.mipmap.folder);
+            data.add(upper);
+        }
 
         for (File file : receivedItems) {
             Map<String, Object> item = new HashMap<>();
@@ -526,6 +569,13 @@ public class MainActivity extends Activity {
                         openVideo(path.getText().toString());
                     } else {
                         openText(path.getText().toString());
+                    }
+                } else {
+                    File file = new File(path.getText().toString());
+                    if (file.isDirectory()) {
+                        loadFiles(file);
+                    } else {
+                        System.out.println("*****" + file.toString());
                     }
                 }
             }
