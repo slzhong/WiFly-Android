@@ -49,6 +49,7 @@ import cn.slzhong.wifly.R;
 import cn.slzhong.wifly.Utils.Network;
 import cn.slzhong.wifly.Utils.Server;
 import cn.slzhong.wifly.Utils.Storage;
+import cn.slzhong.wifly.Utils.Uploader;
 import fi.iki.elonen.ServerRunner;
 
 
@@ -279,6 +280,7 @@ public class MainActivity extends Activity {
     }
 
     private void searchIp(final String ip) {
+        System.out.println("!@#!@#" + ip);
         if (!ip.equalsIgnoreCase(ipString)) {
             new Thread(new Runnable() {
                 @Override
@@ -384,11 +386,10 @@ public class MainActivity extends Activity {
     private void showActions() {
         new AlertDialog.Builder(this)
                 .setTitle("Select A Type You Want To Send")
-                .setItems(new String[]{"Choose From Album", "Choose From Files", "Text Messsage"}, new DialogInterface.OnClickListener() {
+                .setItems(new String[]{"Choose From Files", "Text Messsage"}, new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        System.out.println("*****" + which);
-                        if (which == 1) {
+                        if (which == 0) {
                             isReceived = false;
                             loadFiles(Storage.getReceived());
                             toggleFiles();
@@ -527,8 +528,6 @@ public class MainActivity extends Activity {
 
         List<Map<String, Object>> data = new ArrayList<>();
 
-        System.out.println("*****" + dir);
-
         if (!isReceived && dir.length() > 0) {
             Map<String, Object> upper = new HashMap<>();
             upper.put("name", "..");
@@ -574,8 +573,9 @@ public class MainActivity extends Activity {
                     File file = new File(path.getText().toString());
                     if (file.isDirectory()) {
                         loadFiles(file);
-                    } else {
-                        System.out.println("*****" + file.toString());
+                    } else if (file.exists()) {
+                        sendFile(file);
+                        toggleFiles();
                     }
                 }
             }
@@ -618,5 +618,19 @@ public class MainActivity extends Activity {
         Uri uri = Uri.fromFile(new File(path));
         intent.setDataAndType(uri, "text/plain");
         startActivity(intent);
+    }
+
+    private void sendFile(File file) {
+        try {
+            JSONObject device = devices.getJSONObject(currentDevice);
+            String url = device.getString("url");
+            url = device.getString("type").equalsIgnoreCase("ios")
+                    ? url.substring(0, url.length() - 7) + "/upload"
+                    : device.getString("url") + "upload";
+            Uploader uploader = new Uploader(mainHandler, file.toString(), url);
+            uploader.execute();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }
